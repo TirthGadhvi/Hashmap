@@ -1,0 +1,83 @@
+class CustomMap:
+    def __init__(self, size_of_container):
+        self.size_of_container = size_of_container
+        self.container = [None for _ in range(size_of_container)]
+
+    def calculate_hash(self, state, collision_count=0):
+        state_bytes = state.encode()
+        hash_sum = sum(state_bytes)
+        return hash_sum + collision_count
+
+    def apply_compression(self, hash_value):
+        return hash_value % self.size_of_container
+
+    def insert(self, state, capital):
+        container_position = self.apply_compression(self.calculate_hash(state))
+        current_position_value = self.container[container_position]
+
+        if current_position_value is None:
+            self.container[container_position] = [state, capital]
+            return
+
+        if current_position_value[0] == state:
+            self.container[container_position] = [state, capital]
+            return
+
+        # Collision Handling
+
+        collision_count = 1
+
+        while(current_position_value[0] != state):
+            new_hash_value = self.calculate_hash(state, collision_count)
+            new_container_position = self.apply_compression(new_hash_value)
+            current_position_value = self.container[new_container_position]
+
+            if current_position_value is None:
+                self.container[new_container_position] = [state, capital]
+                return
+
+            if current_position_value[0] == state:
+                self.container[new_container_position] = [state, capital]
+                return
+
+            collision_count += 1
+
+        return
+
+    def fetch(self, state):
+        container_position = self.apply_compression(self.calculate_hash(state))
+        possible_data = self.container[container_position]
+
+        if possible_data is None:
+            return None
+
+        if possible_data[0] == state:
+            return possible_data[1]
+
+        collision_attempts = 1
+
+        while (possible_data != state):
+            new_hash_value = self.calculate_hash(state, collision_attempts)
+            new_container_position = self.apply_compression(new_hash_value)
+            possible_data = self.container[new_container_position]
+
+            if possible_data is None:
+                return None
+
+            if possible_data[0] == state:
+                return possible_data[1]
+
+            collision_attempts += 1
+
+        return
+
+
+# Using state-capital pairs
+custom_map = CustomMap(15)
+custom_map.insert('California', 'Sacramento')
+custom_map.insert('Texas', 'Austin')
+custom_map.insert('Florida', 'Tallahassee')
+
+print(custom_map.fetch('California'))  # Should return 'Sacramento'
+print(custom_map.fetch('Texas'))  # Should return 'Austin'
+print(custom_map.fetch('Florida'))  # Should return 'Tallahassee'
